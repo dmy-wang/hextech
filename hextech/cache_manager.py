@@ -4,11 +4,11 @@ import time
 from pathlib import Path
 
 class Cache:
-    def __init__(self, cache_file="resources/cache.json", expiry_seconds=3600):  # 默认过期时间为1小时
+    def __init__(self, cache_file="data/cache.json", expiry_seconds=3600):  # 默认过期时间为1小时
         self._cache = {}  # 使用字典存储缓存数据
         current_dir = os.path.dirname(os.path.abspath(__file__))
         # 定义要创建的文件夹名称
-        folder_name = "resources"
+        folder_name = "data"
 
         # 构建新文件夹的完整路径
         new_folder_path = os.path.join(current_dir, folder_name)

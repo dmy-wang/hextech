@@ -38,6 +38,10 @@ class TeamAnalysis:
         self.my_account_id = data["accountId"]
         self.user_name = data["internalName"]
 
+    def update_position(self,pos):
+        # 更新位置信息
+        self.my_position = pos
+        self.bp_data["position"] = self.my_position
     def update_team_info(self,data):
         my_team_bans = []
         their_team_bans = []

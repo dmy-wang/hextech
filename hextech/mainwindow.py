@@ -1,4 +1,8 @@
 import os
+from alibabacloud_ecs20140526.client import Client as Ecs20140526Client
+from alibabacloud_ecs20140526 import models as ecs_20140526_models
+from alibabacloud_tea_openapi import models as open_api_models 
+import os
 import sys
 import logging
 import datetime
@@ -238,7 +242,8 @@ class HeroRecommender(QMainWindow):
         self.current_pos_combo.addItems(["top", "jungle", "mid", "bottom", "sup"])
         self.fetch_btn.clicked.connect(self.get_bp_info_and_display)
         self.generate_btn.clicked.connect(self.generate_recommendations)
-
+        # 添加槽函数连接
+        self.current_pos_combo.currentTextChanged.connect(self.on_position_changed)
          # 设置状态栏样式
         self.statusBar().setStyleSheet("""
             QStatusBar {
@@ -338,7 +343,8 @@ class HeroRecommender(QMainWindow):
         control_layout.addWidget(self.current_pos_combo) 
         control_layout.addStretch()
         control_layout.addWidget(self.generate_btn)
-        control_layout.addStretch()
+        control_layout.addSpacing(40)
+        # control_layout.addStretch()
         main_layout.addLayout(control_layout)
         
         # BP信息展示区域
@@ -375,6 +381,15 @@ class HeroRecommender(QMainWindow):
         
         # 状态栏
         self.statusBar().showMessage("就绪")
+    def on_position_changed(self, position):
+        """
+        当位置选择发生变化时的槽函数
+        """
+        self.position = position
+        self.analysis_tool.update_position(position)
+        self.update_my_position()
+        self.set_status_message(f"已更新位置：{position}", "info", 2000)
+
     def setup_status_bar_styles(self):
         self.status_styles = {
             'error': """
@@ -483,7 +498,7 @@ class HeroRecommender(QMainWindow):
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
         # 定义要创建的文件夹名称
-        folder_name = "resources"
+        folder_name = "data"
 
         # 构建新文件夹的完整路径
         new_folder_path = os.path.join(current_dir, folder_name)
@@ -526,7 +541,7 @@ class HeroRecommender(QMainWindow):
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
         # 定义要创建的文件夹名称
-        folder_name = "resources"
+        folder_name = "data"
 
         # 构建新文件夹的完整路径
         new_folder_path = os.path.join(current_dir, folder_name)
@@ -592,7 +607,12 @@ class HeroRecommender(QMainWindow):
         bp_data = self.analysis_tool.get_bp_data()
         # 与LLM通信
         self.llm_handler = LLMHandler(use_api=False)
+        self.llm_handler.finished.connect(self.update_recommendations)
+        self.llm_handler.error.connect(self.visit_llm_error_process)
         recommendations =  self.llm_handler.process_async(bp_data)
+
+
+    def update_recommendations(self):
         # 更新推荐卡片
         for i in range(len(recommendations)):
             self.cards[i].hero_label.setText(recommendations[i]["hero"])
