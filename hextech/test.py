@@ -1,9 +1,9 @@
 import os
 from openai import OpenAI
-from api_key import OPENAI_API_KEY, OPENAI_MODEL
+# from api_key import OPENAI_API_KEY, OPENAI_MODEL
 # 初始化客户端
 
-client = OpenAI(api_key=OPENAI_API_KEY)  # 替换为您的实际API密钥
+# client = OpenAI(api_key=OPENAI_API_KEY)  # 替换为您的实际API密钥
 def list_available_models():
     """
     列出当前API密钥可以访问的所有模型
@@ -153,8 +153,8 @@ prompt = """你是一名经验丰富的专业英雄联盟分析师，请根据�
             ]
         }}
     ]"""
-reponse = chat_with_ollama(prompt, model="deepseek-r1:7b")
-print(reponse)
+# reponse = chat_with_ollama(prompt, model="deepseek-r1:7b")
+# print(reponse)
     # 获取当前工作目录
     # current_dir = os.getcwd()
     # print(f"当前工作目录: {current_dir}")
@@ -200,3 +200,40 @@ print(reponse)
 # 打印响应
 # print(response.status_code)
 # print(response.json())
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx",
+    api_key="sk-0093051937df469db157c1dfb848c5cf", 
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+)
+completion = client.chat.completions.create(
+    model="qwen-plus", # 此处以qwen-plus为例，可按需更换模型名称。模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
+    messages=[
+        {'role': 'system', 'content': 'You are a helpful assistant.'},
+        {'role': 'user', 'content': """假设你是一位专业的英雄联盟BP分析师，请根据以下信息，为我提供英雄选择建议和相应的游戏思路：
+敌方禁用英雄：['莫甘娜', '亚索', '伊莉丝', '诺手', '杰斯']
+敌方选择英雄：['锤石', '克烈', '卡兹克', '凯莎']
+我方禁用英雄：['韦鲁斯', '诺克萨斯之手', '塔姆', '伊芙琳']
+我方选择英雄：['潘森', '千珏', '亚索', '潘森']
+我的游戏位置：bottom
+请根据以上信息，为我提供一些建议，包括但不限于：
+1. 我的英雄选择推荐（3个）
+2. 推荐英雄的理由
+3. 推荐英雄的游戏思路，包括个人对线思路和团战配合思路
+根据以上要求，将结果严格组织成以下格式输出，不需要多余的文字。
+[
+{
+"hero": "卡莎",
+"reason": "能够灵活调整输出位置，配合队友进场完成单点秒杀",
+"strategy": [
+"优先升级Q技能提升爆发",
+"利用E技能隐身调整位置",
+"大招突进收割残血目标"
+]
+}
+]"""}],
+    )
+    
+print(completion.choices[0].message.content)

@@ -2,23 +2,11 @@ import json
 import os
 import time
 from pathlib import Path
-
+from utils import create_data_folder
 class Cache:
     def __init__(self, cache_file="data/cache.json", expiry_seconds=3600):  # 默认过期时间为1小时
         self._cache = {}  # 使用字典存储缓存数据
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # 定义要创建的文件夹名称
-        folder_name = "data"
-
-        # 构建新文件夹的完整路径
-        new_folder_path = os.path.join(current_dir, folder_name)
-
-        # 检查文件夹是否已存在，如果不存在则创建
-        if not os.path.exists(new_folder_path):
-            os.makedirs(new_folder_path)
-            #print(f"已成功创建文件夹: {new_folder_path}")
-        else:
-            pass
+        new_folder_path = create_data_folder("data")
         self.cache_file = os.path.join(new_folder_path, "cache.json")
         self.expiry_seconds = expiry_seconds
         self._load_cache()

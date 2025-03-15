@@ -1,10 +1,8 @@
 import os
 import json
-import asyncio
 import openai
 import requests
 from openai import OpenAI
-from typing import AsyncGenerator
 from cache_manager import Cache
 from PyQt5.QtCore import Qt, QThread, pyqtSignal,QObject
 # from api_key import OPENAI_API_KEY, OPENAI_MODEL
@@ -84,7 +82,7 @@ class LLMHandler(QObject):  # 继承自QObject
     
     def get_result(self,bp_data):
         prompt = self.create_prompt(bp_data)
-        
+        print(f"prompt: {prompt}")
         # 使用同步方法获取结果
         response_text = self.get_suggestion_sync(prompt)
         #print(f"response_text: {response_text}")
@@ -119,44 +117,42 @@ class LLMHandler(QObject):  # 继承自QObject
         ]
         return recommendations
     
-    # async def get_suggestion(self, prompt: str) -> AsyncGenerator[str, None]:
-    #     print(f"prompt: {prompt}")
-    #     cached = self.cache.get(prompt)
-    #     if cached:
-    #         yield cached
-    #         return
 
-    #     for attempt in range(self.max_retries):
-    #         try:
-    #             stream = await self.client.chat.completions.create(
-    #                 model=self.model,
-    #                 messages=[{"role": "user", "content": prompt}],
-    #                 temperature=0.3,
-    #                 stream=True,
-    #                 response_format={"type": "json_object"}
-    #             )
-                
-    #             full_response = []
-    #             async for chunk in stream:
-    #                 content = chunk.choices[0].delta.content
-    #                 if content:
-    #                     full_response.append(content)
-    #                     yield content
-                
-    #             final_output = "".join(full_response)
-    #             # 使用try-except验证JSON格式而不是调用未定义的函数
-    #             try:
-    #                 import json
-    #                 json.loads(final_output)  # 尝试解析JSON
-    #                 self.cache.set(prompt, final_output, expire=86400)  # 使用self.cache而不是cache
-    #             except json.JSONDecodeError:
-    #                 pass  # JSON格式无效，不缓存
-    #             break
-                    
-    #         except Exception as e:
-    #             if attempt == self.max_retries - 1:
-    #                 yield str(e)
-
+    def chat_with_qwen(self,prompt, model="qwen-plus"):
+        """
+        使用阿里云百炼API发送请求并获取回复
+        
+        参数:
+            prompt (str): 发送给模型的提示文本
+            system_message (str): 系统消息，默认为"You are a helpful assistant."
+            model (str): 使用的模型名称，默认为qwen-plus
+            
+        返回:
+            str: 模型的回复文本
+        """
+        client = OpenAI(
+            # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx",
+            api_key="sk-0093051937df469db157c1dfb848c5cf", 
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        )
+        try:
+            # 创建聊天完成请求
+            completion = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {'role': 'system', 'content': "你是一位专业的英雄联盟BP分析师。"},
+                    {'role': 'user', 'content': prompt}
+                ]
+            )
+            
+            # 提取回复文本
+            reply = completion.choices[0].message.content
+            print(f"reply: {reply}")
+            return reply
+            
+        except Exception as e:
+            return f"访问API失败: {str(e)}"
+        
     def chat_with_ollama(self,prompt,model="llama2"):
         try:
          
@@ -230,7 +226,8 @@ class LLMHandler(QObject):  # 继承自QObject
                 if self.use_api:
                     response = self.chat_with_api(prompt)
                 else:
-                    response = self.chat_with_ollama(prompt,model="qwen2.5:latest")
+                    #response = self.chat_with_ollama(prompt,model="qwen2.5:latest")
+                    response = self.chat_with_qwen(prompt,model="qwen-plus")
                 final_output = response
                 
                 # 验证JSON格式

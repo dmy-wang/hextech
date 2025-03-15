@@ -3,7 +3,6 @@ from urllib3.exceptions import InsecureRequestWarning
 import psutil
 import base64
 import requests
-import json
 
 warnings.simplefilter('ignore', InsecureRequestWarning)
 

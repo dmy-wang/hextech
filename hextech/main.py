@@ -1,10 +1,8 @@
 import os
 import sys
-import json
 from lolhelper import *
-from analysis import TeamAnalysis
 from mainwindow import HeroRecommender
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication
 
 def main():
     # 初始化Hextech窗口

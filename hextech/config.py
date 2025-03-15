@@ -1,4 +1,3 @@
-import json
 
 # 英雄ID到名称的映射字典（更完整版本）
 CHAMPION_ID_TO_NAME = {
