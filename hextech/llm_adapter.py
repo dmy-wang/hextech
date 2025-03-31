@@ -52,37 +52,41 @@ class LLMHandler(QObject):  # 继承自QObject
 
 
     def create_prompt(self,bp_data):
-        prompt = f'''
-        假设你是一位专业的英雄联盟BP分析师，请根据以下信息，为我提供英雄选择建议和相应的游戏思路：
-        敌方禁用英雄：{bp_data['their_team_bans']}
-        敌方选择英雄：{bp_data['their_team_picks']}
-        我方禁用英雄：{bp_data['my_team_bans']}
-        我方选择英雄：{bp_data['my_team_picks']}
-        我的游戏位置：{bp_data['my_position']}
-        请根据以上信息，为我提供一些建议，包括但不限于：
-        1. 我的英雄选择推荐（3个）
-        2. 推荐英雄的理由
-        3. 推荐英雄的游戏思路，包括个人对线思路和团战配合思路
-        根据以上要求，将结果严格组织成以下格式输出，不需要多余的文字。
-        [
-            {{
-                "hero": "卡莎",
-                "reason": "能够灵活调整输出位置，配合队友进场完成单点秒杀",
-                "strategy": [
-                    "优先升级Q技能提升爆发",
-                    "利用E技能隐身调整位置",
-                    "大招突进收割残血目标"
-                ]
-            }}
-        ]
-        '''
+        try:
+            prompt = f'''
+            假设你是一位专业的英雄联盟BP分析师，请根据以下信息，为我提供英雄选择建议和相应的游戏思路：
+            敌方禁用英雄：{bp_data['their_team_bans']}
+            敌方选择英雄：{bp_data['their_team_picks']}
+            我方禁用英雄：{bp_data['my_team_bans']}
+            我方选择英雄：{bp_data['my_team_picks']}
+            我的游戏位置：{bp_data['my_position']}
+            请根据以上信息，考虑英雄胜率，对线强度，团队配合等因素，为我提供一些建议，包括但不限于：
+            1. 我的英雄选择推荐（3个）
+            2. 推荐英雄的理由
+            3. 推荐英雄的游戏思路，包括个人对线思路和团战配合思路
+            根据以上要求，将结果严格组织成以下格式输出，不需要多余的文字。
+            [
+                {{
+                    "hero": "卡莎",
+                    "reason": "能够灵活调整输出位置，配合队友进场完成单点秒杀",
+                    "strategy": [
+                        "优先升级Q技能提升爆发",
+                        "利用E技能隐身调整位置",
+                        "大招突进收割残血目标"
+                    ]
+                }}
+            ]
+            '''
+        except Exception as e:
+            raise Exception(f"读取BP数据失败: {str(e)}")
+            return ""
         return prompt
 
 
     
     def get_result(self,bp_data):
         prompt = self.create_prompt(bp_data)
-        print(f"prompt: {prompt}")
+        #print(f"prompt: {prompt}")
         # 使用同步方法获取结果
         response_text = self.get_suggestion_sync(prompt)
         #print(f"response_text: {response_text}")
@@ -142,7 +146,11 @@ class LLMHandler(QObject):  # 继承自QObject
                 messages=[
                     {'role': 'system', 'content': "你是一位专业的英雄联盟BP分析师。"},
                     {'role': 'user', 'content': prompt}
-                ]
+                ],
+                stream=False,
+                temperature=0.7,
+                max_tokens=1000,
+                top_p=0.8
             )
             
             # 提取回复文本
@@ -227,9 +235,9 @@ class LLMHandler(QObject):  # 继承自QObject
                     response = self.chat_with_api(prompt)
                 else:
                     #response = self.chat_with_ollama(prompt,model="qwen2.5:latest")
-                    response = self.chat_with_qwen(prompt,model="qwen-plus")
+                    response = self.chat_with_qwen(prompt,model="qwen-plus-latest")
                 final_output = response
-                
+                #print(f"final_output: {final_output}")
                 # 验证JSON格式
                 try:
                     import json

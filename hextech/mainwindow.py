@@ -218,7 +218,9 @@ class HeroRecommender(QMainWindow):
             self.generate_btn.setIcon(QIcon(icon_path))
         else:
             # 如果图标不存在，记录错误信息
-            print(f"警告：图标文件不存在 - {icon_path}")
+            #print(f"警告：图标文件不存在 - {icon_path}")
+            self.statusBar().showMessage("警告：图标文件不存在 - " + icon_path, 5000)
+            pass
         self.generate_btn.setIcon(QIcon(icon_path))
         self.generate_btn.setIconSize(QSize(36, 36))
         self.current_pos_label.setStyleSheet("""
@@ -237,11 +239,10 @@ class HeroRecommender(QMainWindow):
         # 添加选项
         # 创建下拉选择框
         self.current_pos_combo = QComboBox()
-        self.current_pos_combo.addItems(["top", "jungle", "mid", "bottom", "sup"])
+        self.current_pos_combo.addItems(["top", "jungle", "mid", "bottom", "utility"])
+        self.current_pos_combo.currentIndexChanged.connect(self.on_position_changed)
         self.fetch_btn.clicked.connect(self.get_bp_info_and_display)
         self.generate_btn.clicked.connect(self.generate_recommendations)
-        # 添加槽函数连接
-        self.current_pos_combo.currentTextChanged.connect(self.on_position_changed)
          # 设置状态栏样式
         self.statusBar().setStyleSheet("""
             QStatusBar {
@@ -373,20 +374,24 @@ class HeroRecommender(QMainWindow):
         self.cards = []
         for i in range(3):
             card = HeroCard(f"推荐方案 {i+1}")
+            # 设置大小策略为Expanding，使卡片可以随窗口大小变化
+            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            # 添加卡片到布局，并设置相同的拉伸因子
             self.cards.append(card)
-            rec_layout.addWidget(card)
+            rec_layout.addWidget(card, 1)
         main_layout.addLayout(rec_layout)
         
         # 状态栏
         self.statusBar().showMessage("就绪")
-    def on_position_changed(self, position):
+    def on_position_changed(self, position_index):
         """
         当位置选择发生变化时的槽函数
         """
-        self.position = position
-        self.analysis_tool.update_position(position)
-        self.update_my_position()
-        self.set_status_message(f"已更新位置：{position}", "info", 2000)
+        position_index = int(position_index)
+        self.position = ["top", "jungle", "mid", "bottom", "utility"][position_index]
+        self.analysis_tool.update_position(self.position)
+        #self.update_my_position()
+        self.set_status_message(f"已更新位置：{self.position}", "info", 2000)
 
     def setup_status_bar_styles(self):
         self.status_styles = {
@@ -454,7 +459,7 @@ class HeroRecommender(QMainWindow):
                 "jungle": "猴子",
                 "mid": "卡特琳娜",
                 "bottom": "女警",
-                "sup": "锤石"
+                "utility": "锤石"
             }
         }
     def get_bp_data(self):
@@ -483,7 +488,7 @@ class HeroRecommender(QMainWindow):
         position = self.analysis_tool.get_my_pos()
     
         # 如果位置为空，则默认为top
-        if not position or position not in ["top", "jungle", "mid", "bottom", "sup"]:
+        if not position or position not in ["top", "jungle", "mid", "bottom", "utility"]:
             position = "top"
     
         # 在下拉框中选择对应的位置
@@ -535,7 +540,7 @@ class HeroRecommender(QMainWindow):
                 self.bp_info_json = self.lol_connector.get("lol-champ-select/v1/session")
             except Exception as e:
                 self.set_status_message(f"客户端数据读取失败: {str(e)}", "error", 5000)
-                return
+                raise Exception("客户端数据读取失败")
 
                 
             # 生成时间戳作为文件名的一部分
@@ -553,13 +558,13 @@ class HeroRecommender(QMainWindow):
 
     def get_bp_info_and_display(self):
         # 获取历史数据
-        self.get_last_bp_file()
+        #self.get_last_bp_file()
         # 获取客户端数据
-        # try:
-        #     self.get_bp_info_from_lol_client()
-        # except Exception as e:
-        #     self.set_status_message(f"BP数据读取失败: {str(e)}", "error", 5000)
-        #     return
+        try:
+            self.get_bp_info_from_lol_client()
+        except Exception as e:
+            self.set_status_message(f"BP数据读取失败: {str(e)}", "error", 5000)
+            return
         try:
             self.analysis_tool.update_user_info(self.user_info_json)
             self.analysis_tool.update_team_info(self.bp_info_json)
@@ -603,7 +608,7 @@ class HeroRecommender(QMainWindow):
         # 这个函数将在LLM处理完成后被调用
         # recommendations是LLM处理的结果（一个列表）
         
-        print("收到推荐结果:", recommendations)
+        #print("收到推荐结果:", recommendations)
         
         # 更新UI显示推荐结果
         # 例如，假设你有三个推荐卡片：
@@ -624,7 +629,7 @@ class HeroRecommender(QMainWindow):
     def on_llm_error(self, error_message):
         # 这个函数将在LLM处理出错时被调用
         
-        print("处理出错:", error_message)
+        #print("处理出错:", error_message)
         
         # 显示错误消息
         # 例如，使用状态栏或对话框显示错误

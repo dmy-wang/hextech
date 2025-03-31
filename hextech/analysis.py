@@ -1,5 +1,5 @@
 import json
-from config import CHAMPION_ID_TO_NAME, SUMMONER_SPELL_ID_TO_NAME
+from config import  SUMMONER_SPELL_ID_TO_NAME,CHAMPION_ID_TO_REAL_NAME
 class TeamAnalysis:
     def __init__(self):
         self.my_team_bans = []
@@ -25,11 +25,16 @@ class TeamAnalysis:
         # 获取我的位置
         return self.my_position
     
+    def set_my_pos(self,position):
+        # 设置我的位置
+        self.my_position = position
+
     def get_accountId(self,data):
         # 获取账户ID
         return data["accountId"]
     
     def get_bp_data(self):
+        self.bp_data["my_position"] = self.my_position
         # 获取BP数据
         return self.bp_data
     
@@ -54,7 +59,7 @@ class TeamAnalysis:
                 champion_id = action["championId"]
                 if champion_id == -1:
                     continue  # 跳过无效的禁用
-                champion_name = CHAMPION_ID_TO_NAME.get(champion_id, f"未知英雄 ({champion_id})")
+                champion_name = CHAMPION_ID_TO_REAL_NAME.get(champion_id, f"未知英雄 ({champion_id})")
                 ac = action["isAllyAction"]
                 if ac:
                     my_team_bans.append(champion_name)
@@ -71,7 +76,7 @@ class TeamAnalysis:
             if acount_id == self.my_account_id:
                 self.my_position = player["assignedPosition"]
             champion_id = player["championId"]
-            champion_name = CHAMPION_ID_TO_NAME.get(champion_id, f"未知英雄 ({champion_id})")
+            champion_name = CHAMPION_ID_TO_REAL_NAME.get(champion_id, f"未知英雄 ({champion_id})")
             position = player["assignedPosition"]
             spell1 = SUMMONER_SPELL_ID_TO_NAME.get(player["spell1Id"], f"未知技能 ({player['spell1Id']})")
             spell2 = SUMMONER_SPELL_ID_TO_NAME.get(player["spell2Id"], f"未知技能 ({player['spell2Id']})")
@@ -87,7 +92,7 @@ class TeamAnalysis:
 
         for player in data["theirTeam"]:
             champion_id = player["championId"]
-            champion_name = CHAMPION_ID_TO_NAME.get(champion_id, f"未知英雄 ({champion_id})")
+            champion_name = CHAMPION_ID_TO_REAL_NAME.get(champion_id, f"未知英雄 ({champion_id})")
             position = player["assignedPosition"]
             spell1 = SUMMONER_SPELL_ID_TO_NAME.get(player["spell1Id"], f"未知技能 ({player['spell1Id']})")
             spell2 = SUMMONER_SPELL_ID_TO_NAME.get(player["spell2Id"], f"未知技能 ({player['spell2Id']})")
