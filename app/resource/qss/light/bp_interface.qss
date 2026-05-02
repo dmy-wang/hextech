@@ -1,0 +1,26 @@
+BPInterface {
+    background-color: transparent;
+}
+
+BPInterface QScrollArea {
+    border: none;
+    background-color: transparent;
+}
+
+BanRecommendationSection,
+PickRecommendationSection,
+CompositionAnalysisSection {
+    background-color: rgba(0, 0, 0, 5);
+    border: 1px solid rgba(0, 0, 0, 10);
+    border-radius: 8px;
+}
+
+BPStatusWidget {
+    background-color: rgba(0, 0, 0, 3);
+    border-radius: 6px;
+}
+
+ChampionRecommendationCard {
+    background-color: rgba(0, 0, 0, 5);
+    border-radius: 8px;
+}

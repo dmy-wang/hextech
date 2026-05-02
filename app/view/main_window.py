@@ -22,6 +22,7 @@ from app.common.qfluentwidgets import (
 )
 
 from app.view.start_interface import StartInterface
+from app.view.bp_interface import BPInterface
 from app.common.util import getLolClientPid, getTasklistPath, getLoLPathByRegistry
 from app.components.avatar_widget import NavigationAvatarWidget
 from app.components.temp_system_tray_menu import TmpSystemTrayMenu
@@ -54,6 +55,7 @@ class MainWindow(FluentWindow):
 
         # 创建子界面
         self.startInterface = StartInterface(self)
+        self.bpInterface = BPInterface(self)
 
         logger.critical("Hextech interfaces initialized", TAG)
 
@@ -64,6 +66,8 @@ class MainWindow(FluentWindow):
         logger.critical("Hextech listeners started", TAG)
 
         self.currentSummoner = None
+        self.lastTipsTime = 0
+        self.lastTipsType = None
 
         self.__initInterface()
         self.__initNavigation()
@@ -94,6 +98,7 @@ class MainWindow(FluentWindow):
     def __initInterface(self):
         self.__lockInterface()
         self.startInterface.setObjectName("startInterface")
+        self.bpInterface.setObjectName("bpInterface")
 
     def __initNavigation(self):
         pos = NavigationItemPosition.SCROLL
@@ -102,6 +107,8 @@ class MainWindow(FluentWindow):
 
         self.addSubInterface(
             self.startInterface, Icon.HOME, self.tr("Start"), pos)
+        self.addSubInterface(
+            self.bpInterface, Icon.GAME, self.tr("BP Assistant"), pos)
 
         pos = NavigationItemPosition.BOTTOM
 
@@ -112,11 +119,6 @@ class MainWindow(FluentWindow):
             widget=self.avatarWidget,
             onClick=self.__onAvatarWidgetClicked,
             position=pos,
-        )
-
-        self.addSubInterface(
-            self.settingInterface, FluentIcon.SETTING,
-            self.tr("Settings"), pos,
         )
 
         self.navigationInterface.setExpandWidth(250)
@@ -214,19 +216,19 @@ class MainWindow(FluentWindow):
         self.trayIcon.setToolTip("Hextech")
         self.trayIcon.setIcon(QIcon("app/resource/images/logo.png"))
 
-        settingsAction = Action(Icon.SETTING, self.tr("Settings"), self)
+        bpAction = Action(Icon.GAME, self.tr("BP Assistant"), self)
         quitAction = Action(Icon.EXIT, self.tr('Quit'), self)
 
         def quit():
             self.isTrayExit = True
             self.close()
 
-        settingsAction.triggered.connect(
-            lambda: self.checkAndSwitchTo(self.settingInterface))
+        bpAction.triggered.connect(
+            lambda: self.checkAndSwitchTo(self.bpInterface))
         quitAction.triggered.connect(quit)
 
         self.trayMenu = TmpSystemTrayMenu(self)
-        self.trayMenu.addAction(settingsAction)
+        self.trayMenu.addAction(bpAction)
         self.trayMenu.addAction(quitAction)
 
         self.trayIcon.setContextMenu(self.trayMenu)
@@ -384,14 +386,27 @@ class MainWindow(FluentWindow):
     async def __onChampionSelectBegin(self):
         """进入英雄选择界面"""
         logger.info("Champion select began", TAG)
-        # TODO: 初始化 BP 推荐分析器
+
+        # 切换到 BP 界面
+        self.checkAndSwitchTo(self.bpInterface)
+
+        # 初始化 BP 分析器
+        await self.bpInterface.initialize()
 
     @asyncSlot(dict)
     async def __onChampSelectChanged(self, data):
         """BP 状态变化"""
         data = data['data']
-        logger.debug(f"Champ select changed: {data.get('timer', {}).get('phase')}", TAG)
-        # TODO: 更新 BP 推荐
+        phase = data.get('timer', {}).get('phase', '')
+        logger.debug(f"Champ select changed: {phase}", TAG)
+
+        # 更新 BP 推荐
+        try:
+            recommendation = await self.bpInterface.bp_analyzer.analyze(data)
+            signalBus.bpRecommendationUpdated.emit(recommendation.to_dict())
+            signalBus.bpPhaseChanged.emit(phase.lower())
+        except Exception as e:
+            logger.error(f"Failed to analyze BP: {e}", TAG)
 
     async def __onGameStart(self):
         """进入游戏"""
@@ -401,6 +416,7 @@ class MainWindow(FluentWindow):
     async def __onGameEnd(self):
         """游戏结束"""
         logger.info("Game ended", TAG)
+        self.bpInterface.clear()
 
     def __onCurrentStackedChanged(self, index):
         pass
