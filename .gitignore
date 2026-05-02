@@ -1,5 +1,7 @@
 # 忽略 Python 字节码文件
 **/__pycache__/
+*.pyc
+*.pyo
 
 # 忽略测试模块
 test.py
@@ -25,3 +27,20 @@ log
 # 忽略虚拟环境
 venv
 seraphine
+
+# Build and Release Folders
+bin-debug/
+bin-release/
+[Oo]bj/
+[Bb]in/
+build/
+
+# Executables
+*.exe
+*.dll
+*.spec
+
+# Other files
+.settings/
+log.md
+api_key.py
