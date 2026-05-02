@@ -28,9 +28,9 @@ pip install -r requirements.txt
 if exist "dist" rmdir /s /q "dist"
 if exist "build" rmdir /s /q "build"
 
-:: 打包
+:: 打包 (使用 python -m PyInstaller 避免 PATH 问题)
 echo [信息] 开始打包...
-pyinstaller hextech.spec --clean
+python -m PyInstaller hextech.spec --clean
 
 if errorlevel 1 (
     echo [错误] 打包失败！

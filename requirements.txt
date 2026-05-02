@@ -8,4 +8,4 @@ psutil==5.9.8
 qasync==0.27.1
 py7zr==0.21.0
 async-lru==2.0.4
-pywin32==306
+pywin32>=306
