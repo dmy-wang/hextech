@@ -1,0 +1,16 @@
+LLMInterface {
+    background-color: transparent;
+}
+
+LLMInterface QScrollArea {
+    border: none;
+    background-color: transparent;
+}
+
+ProviderConfigCard,
+TestConnectionCard,
+ChatTestCard {
+    background-color: rgba(0, 0, 0, 5);
+    border: 1px solid rgba(0, 0, 0, 10);
+    border-radius: 8px;
+}

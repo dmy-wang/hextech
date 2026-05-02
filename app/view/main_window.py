@@ -23,6 +23,7 @@ from app.common.qfluentwidgets import (
 
 from app.view.start_interface import StartInterface
 from app.view.bp_interface import BPInterface
+from app.view.llm_interface import LLMInterface
 from app.common.util import getLolClientPid, getTasklistPath, getLoLPathByRegistry
 from app.components.avatar_widget import NavigationAvatarWidget
 from app.components.temp_system_tray_menu import TmpSystemTrayMenu
@@ -56,6 +57,7 @@ class MainWindow(FluentWindow):
         # 创建子界面
         self.startInterface = StartInterface(self)
         self.bpInterface = BPInterface(self)
+        self.llmInterface = LLMInterface(self)
 
         logger.critical("Hextech interfaces initialized", TAG)
 
@@ -99,6 +101,7 @@ class MainWindow(FluentWindow):
         self.__lockInterface()
         self.startInterface.setObjectName("startInterface")
         self.bpInterface.setObjectName("bpInterface")
+        self.llmInterface.setObjectName("llmInterface")
 
     def __initNavigation(self):
         pos = NavigationItemPosition.SCROLL
@@ -109,6 +112,8 @@ class MainWindow(FluentWindow):
             self.startInterface, Icon.HOME, self.tr("Start"), pos)
         self.addSubInterface(
             self.bpInterface, Icon.GAME, self.tr("BP Assistant"), pos)
+        self.addSubInterface(
+            self.llmInterface, FluentIcon.ROBOT, self.tr("LLM Config"), pos)
 
         pos = NavigationItemPosition.BOTTOM
 

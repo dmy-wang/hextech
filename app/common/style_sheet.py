@@ -20,6 +20,7 @@ class StyleSheet(StyleSheetBase, Enum):
     GAME_INFO_INTERFACE = 'game_info_interface'
     AUXILIARY_INTERFACE = 'auxiliary_interface'
     BP_INTERFACE = 'bp_interface'
+    LLM_INTERFACE = 'llm_interface'
 
     OPGG_TIER_INTERFACE = 'opgg_tier_interface'
     OPGG_BUILD_INTERFACE = 'opgg_build_interface'
