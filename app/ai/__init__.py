@@ -14,6 +14,7 @@ from .champion_evaluator import ChampionEvaluator
 from .bp_analyzer import BPAnalyzer
 from .summoner_analyzer import SummonerAnalyzer
 from .team_analyzer import TeamAnalyzer
+from .llm_bp_service import LLMBPService, llm_bp_service
 
 __all__ = [
     'Recommendation',
@@ -23,5 +24,7 @@ __all__ = [
     'ChampionEvaluator',
     'BPAnalyzer',
     'SummonerAnalyzer',
-    'TeamAnalyzer'
+    'TeamAnalyzer',
+    'LLMBPService',
+    'llm_bp_service'
 ]
