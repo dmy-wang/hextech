@@ -405,6 +405,19 @@ class MainWindow(FluentWindow):
         phase = data.get('timer', {}).get('phase', '')
         logger.debug(f"Champ select changed: {phase}", TAG)
 
+        # 更新 BP 状态供 AI 分析使用
+        bp_state = {
+            'phase': phase.lower(),
+            'my_team': data.get('myTeam', []),
+            'their_team': data.get('theirTeam', []),
+            'my_picks': [m.get('championId') for m in data.get('myTeam', []) if m.get('championId')],
+            'their_picks': [m.get('championId') for m in data.get('theirTeam', []) if m.get('championId')],
+            'my_bans': [b.get('championId') for b in data.get('bans', {}).get('myTeamBans', []) if b.get('championId')],
+            'their_bans': [b.get('championId') for b in data.get('bans', {}).get('theirTeamBans', []) if b.get('championId')],
+            'current_position': ''
+        }
+        self.bpInterface.updateBPState(bp_state)
+
         # 更新 BP 推荐
         try:
             recommendation = await self.bpInterface.bp_analyzer.analyze(data)

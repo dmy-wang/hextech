@@ -389,6 +389,8 @@ class CompositionAnalysisSection(QFrame):
 class BPStatusWidget(QFrame):
     """BP 状态显示"""
 
+    aiAnalyzeClicked = pyqtSignal()  # AI 分析按钮点击信号
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -407,9 +409,18 @@ class BPStatusWidget(QFrame):
         self.phaseLabel = BodyLabel("", self)
         self.phaseLabel.setStyleSheet("color: #00BBA3;")
 
+        # AI 分析按钮
+        from app.common.qfluentwidgets import PushButton, FluentIcon
+        self.aiAnalyzeButton = PushButton("🤖 AI 分析", self)
+        self.aiAnalyzeButton.setFixedWidth(100)
+        self.aiAnalyzeButton.setToolTip("使用大模型进行智能分析")
+        self.aiAnalyzeButton.clicked.connect(self.aiAnalyzeClicked.emit)
+
         self.mainLayout.addWidget(self.statusLabel)
         self.mainLayout.addStretch()
         self.mainLayout.addWidget(self.phaseLabel)
+        self.mainLayout.addSpacing(20)
+        self.mainLayout.addWidget(self.aiAnalyzeButton)
 
     def updateStatus(self, phase: str, position: str = ""):
         """更新状态"""
@@ -438,6 +449,11 @@ class BPInterface(SeraphineInterface):
 
         self.bp_analyzer = BPAnalyzer()
         self.current_recommendation: Optional[Recommendation] = None
+
+        # 存储 BP 状态供 LLM 分析使用
+        self._bp_state: dict = {}
+        self._tier_data: dict = {}
+        self._champion_names: Dict[int, str] = {}
 
         self._initUI()
         self._connectSignals()
@@ -496,6 +512,9 @@ class BPInterface(SeraphineInterface):
         self.banSection.championClicked.connect(self._onChampionClicked)
         self.pickSection.championClicked.connect(self._onChampionClicked)
 
+        # AI 分析按钮
+        self.statusWidget.aiAnalyzeClicked.connect(self._onAIAnalyze)
+
     @asyncSlot(dict)
     async def _onRecommendationUpdated(self, data: dict):
         """推荐更新"""
@@ -549,12 +568,132 @@ class BPInterface(SeraphineInterface):
         logger.info(f"Champion clicked: {champion_id}", TAG)
         # 可以在这里添加详情显示或其他功能
 
+    @asyncSlot()
+    async def _onAIAnalyze(self):
+        """AI 分析按钮点击"""
+        from app.common.qfluentwidgets import InfoBar
+        from app.common.llm_config import llm_client
+
+        # 检查 LLM 是否配置
+        if not llm_client.config.api_key:
+            InfoBar.warning(
+                "提示",
+                "请先在 LLM Config 页面配置 API Key",
+                duration=3000,
+                parent=self
+            )
+            return
+
+        # 检查是否有 BP 数据
+        if not self._bp_state:
+            InfoBar.warning(
+                "提示",
+                "等待 BP 数据加载...",
+                duration=3000,
+                parent=self
+            )
+            return
+
+        logger.info("Starting AI analysis", TAG)
+        self.statusWidget.aiAnalyzeButton.setEnabled(False)
+        self.statusWidget.aiAnalyzeButton.setText("分析中...")
+
+        try:
+            from app.ai.llm_bp_service import llm_bp_service
+            from app.lol.connector import connector
+
+            # 获取英雄名称映射
+            champion_names = {}
+            for champ_id in range(1, 1000):
+                try:
+                    name = connector.manager.getChampionNameById(champ_id)
+                    if name:
+                        champion_names[champ_id] = name
+                except:
+                    pass
+
+            # 获取 BP 状态
+            ally_picks = self._bp_state.get('my_picks', [])
+            enemy_picks = self._bp_state.get('their_picks', [])
+            ally_bans = self._bp_state.get('my_bans', [])
+            enemy_bans = self._bp_state.get('their_bans', [])
+            phase = self._bp_state.get('phase', '')
+
+            # 获取版本强势英雄
+            tier_champions = []
+            for pos, champs in self._tier_data.get('data', {}).items():
+                tier_champions.extend(champs)
+
+            if phase == 'ban':
+                # Ban 阶段分析
+                recommendations = await llm_bp_service.get_llm_ban_recommendations(
+                    ally_picks=ally_picks,
+                    enemy_picks=enemy_picks,
+                    ally_bans=ally_bans,
+                    enemy_bans=enemy_bans,
+                    tier_champions=tier_champions,
+                    champion_names=champion_names
+                )
+
+                if recommendations:
+                    await self.banSection.updateRecommendations(recommendations)
+                    InfoBar.success(
+                        "AI 分析完成",
+                        f"已生成 {len(recommendations)} 个 Ban 推荐",
+                        duration=3000,
+                        parent=self
+                    )
+            else:
+                # Pick 阶段分析
+                position_str = self._bp_state.get('current_position', 'MID')
+                position_map = {
+                    'TOP': Position.TOP,
+                    'JUNGLE': Position.JUNGLE,
+                    'MID': Position.MID,
+                    'ADC': Position.ADC,
+                    'SUPPORT': Position.SUPPORT
+                }
+                position = position_map.get(position_str, Position.MID)
+
+                recommendations = await llm_bp_service.get_llm_pick_recommendations(
+                    position=position,
+                    ally_picks=ally_picks,
+                    enemy_picks=enemy_picks,
+                    ally_bans=ally_bans,
+                    enemy_bans=enemy_bans,
+                    player_masteries={},  # TODO: 获取玩家熟练度
+                    tier_champions=tier_champions,
+                    champion_names=champion_names
+                )
+
+                if recommendations:
+                    await self.pickSection.updateRecommendations(recommendations, position_str)
+                    InfoBar.success(
+                        "AI 分析完成",
+                        f"已生成 {len(recommendations)} 个 Pick 推荐",
+                        duration=3000,
+                        parent=self
+                    )
+
+        except Exception as e:
+            logger.error(f"AI analysis failed: {e}", TAG)
+            InfoBar.error(
+                "AI 分析失败",
+                str(e),
+                duration=5000,
+                parent=self
+            )
+        finally:
+            self.statusWidget.aiAnalyzeButton.setEnabled(True)
+            self.statusWidget.aiAnalyzeButton.setText("🤖 AI 分析")
+
     def clear(self):
         """清空界面"""
         self.statusWidget.updateStatus("")
         self.banSection._clearCards()
         self.pickSection._clearCards()
         self.analysisSection.updateAnalysis(None)
+        self._bp_state = {}
 
     async def initialize(self):
         """初始化"""
@@ -565,6 +704,11 @@ class BPInterface(SeraphineInterface):
             from app.lol.opgg import opgg
             tier_data = await opgg.getTierList("kr", "ranked", "platinum_plus")
             self.bp_analyzer.set_opgg_data(tier_data)
+            self._tier_data = tier_data  # 保存供 LLM 分析使用
             logger.info("OP.GG data loaded", TAG)
         except Exception as e:
             logger.error(f"Failed to load OP.GG data: {e}", TAG)
+
+    def updateBPState(self, state: dict):
+        """更新 BP 状态"""
+        self._bp_state = state
